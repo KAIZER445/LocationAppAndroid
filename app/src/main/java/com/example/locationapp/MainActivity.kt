@@ -19,8 +19,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.app.ActivityCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.locationapp.ui.theme.LocationAppTheme
 import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
 
@@ -28,13 +30,14 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
+            val viewModel: LocationViewModel = viewModel()
             LocationAppTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-
+                    MyApp(viewModel)
                 }
             }
         }
@@ -42,10 +45,24 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
+fun MyApp(viewModel: LocationViewModel){
+    val context = LocalContext.current
+    val locationUtils = LocationUtils(context)
+    LocationDisplay(locationUtils = locationUtils, viewModel , context = context)
+}
+
+@Composable
 fun LocationDisplay(
     locationUtils: LocationUtils,
+    viewModel: LocationViewModel,
     context: Context
 ){
+    val location = viewModel.location.value
+
+    val address = location?.let {
+        locationUtils.reverseGeoCodeLocation(location)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize(),
@@ -61,6 +78,7 @@ fun LocationDisplay(
                     )
                 {
                     // i have location
+                    locationUtils.requestLocationUpdates(viewModel = viewModel)
                 }else{
                     val rationalRequired = ActivityCompat.shouldShowRequestPermissionRationale(
                         context as MainActivity,
@@ -85,12 +103,22 @@ fun LocationDisplay(
             }
         )
 
-    Text(text = "Location not available")
+        if (location!=null){
+            Text(text = "Address: ${location.latitude} ${location.longitude} \n $address")
+        }else{
+            Text(text = "Location not available")
+        }
+
         Button(onClick = {
             if (locationUtils.hasLocationPermission(context)){
-                // Permission already granted and update location
+                locationUtils.requestLocationUpdates(viewModel)
             }else{
-                // Request location permission
+                requestPermissionLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    )
+                )
             }
         }) {
             Text(text = "Get Location")
