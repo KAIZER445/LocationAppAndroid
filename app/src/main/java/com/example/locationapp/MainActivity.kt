@@ -77,7 +77,6 @@ fun LocationDisplay(
                     && permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
                     )
                 {
-                    // i have location
                     locationUtils.requestLocationUpdates(viewModel = viewModel)
                 }else{
                     val rationalRequired = ActivityCompat.shouldShowRequestPermissionRationale(
